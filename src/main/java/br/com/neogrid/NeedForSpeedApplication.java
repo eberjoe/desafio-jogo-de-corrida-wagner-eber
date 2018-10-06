@@ -24,10 +24,7 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Desafio("novoPiloto")
 	public void novoPiloto(Long id, String nome, LocalDate dataNascimento, LocalDate dataInicioCarreira,
 			BigDecimal dinheiro) {
-		
-		Optional<Piloto> piloto = buscarPilotoPorId(id);
-		
-		if (piloto.isPresent()) {
+		if (buscarPilotoPorId(id).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.IdentificadorUtilizadoException();
 		}
 //		if (dinheiro.equals(BigDecimal.valueOf(0l))) {
@@ -56,14 +53,13 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		if (!piloto.isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
 		}
+		
 		if (piloto.get().getDinheiroPiloto().compareTo(preco) < 0) {
 			throw new br.com.neogrid.desafio.exceptions.SaldoInsuficienteException();
 		}
 		
-		for (Carro carro : this.carros) {
-			if (carro.getIdCarro().equals(id)) {
-				throw new br.com.neogrid.desafio.exceptions.IdentificadorUtilizadoException();
-			}
+		if (buscarCarroPorId(id).isPresent()) {
+			throw new br.com.neogrid.desafio.exceptions.IdentificadorUtilizadoException();
 		}
 
 		Carro carro = new Carro();
@@ -75,8 +71,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		carro.setPotencia(potencia);
 		carro.setPreco(preco);
 		this.carros.add(carro);
-			
-		// throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -113,7 +107,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 			}
 		}
 		return (lista);
-		//throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -131,17 +124,11 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarCor")
 	public String buscarCor(Long idCarro) {
-		
 		if(!buscarCarroPorId(idCarro).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.CarroNaoEncontradoException();
 		}
-		for (Carro carro: this.carros) {
-			if (carro.getIdCarro().equals(idCarro)) {
-				return carro.getCor();
-			}
-		}
-		return "";
-		//return buscarCarroPorId(idCarro).get().getCor();
+		
+		return buscarCarroPorId(idCarro).get().getCor();
 	}
 
 	@Override
@@ -153,22 +140,18 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarNomePiloto")
 	public String buscarNomePiloto(Long idPiloto) {
-		for (Piloto piloto : this.pilotos) {
-			if (piloto.getIdPiloto().equals(idPiloto)) {
-				return piloto.getNomePiloto();
-			}
+		if(!buscarPilotoPorId(idPiloto).isPresent()) {
+			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
 		}
-		return "Não encontrado";
-		// throw new UnsupportedOperationException();
+		return buscarPilotoPorId(idPiloto).get().getNomePiloto();
 	}
 
 	@Override
 	@Desafio("buscarPilotoMaisExperiente")
 	public Long buscarPilotoMaisExperiente() {
-		for (Piloto piloto : this.pilotos) {
-			
-			
-		}
+//		List<Piloto> pilotos = new ArrayList<>();
+//		piloto
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -194,6 +177,8 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		if(!buscarPilotoPorId(idPiloto).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
 		}
+		
+		// PARA TESTE
 		return BigDecimal.valueOf(10l);
 	}
 
@@ -203,6 +188,8 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		if(!buscarPilotoPorId(idPiloto).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
 		}
+
+		// PARA TESTE
 		return BigDecimal.valueOf(10l);
 	}
 
@@ -212,12 +199,7 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		if(!buscarCarroPorId(idCarro).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.CarroNaoEncontradoException();
 		}
-		
-		for (Carro carro : this.carros) {
-			if (carro.getIdCarro().equals(idCarro)) {
-				carro.setCor(cor);
-			}
-		}
+		buscarCarroPorId(idCarro).get().setCor(cor);
 	}
 
 }
