@@ -1,23 +1,33 @@
 package br.com.neogrid;
 
 import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import br.com.neogrid.desafio.annotation.Desafio;
 import br.com.neogrid.desafio.app.NeedForSpeedInterface;
+import br.com.neogrid.desafio.exceptions.*;
+
 
 public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	private List<Piloto> pilotos = new ArrayList<>();
 	private List<Carro> carros = new ArrayList<>();
 
 	private Optional<Piloto> buscarPilotoPorId(Long idPiloto) {
-		return pilotos.stream().filter(p -> p.getIdPiloto().equals(idPiloto)).findFirst();
+		return this.pilotos.stream()
+				.filter(p -> p.getIdPiloto().equals(idPiloto))
+				.findFirst();
 	}
 	private Optional<Carro> buscarCarroPorId(Long idCarro) {
-		return carros.stream().filter(c -> c.getIdCarro().equals(idCarro)).findFirst();
+		return this.carros.stream()
+				.filter(c -> c.getIdCarro().equals(idCarro))
+				.findFirst();
 	}
 
 	@Override
@@ -25,20 +35,20 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	public void novoPiloto(Long id, String nome, LocalDate dataNascimento, LocalDate dataInicioCarreira,
 			BigDecimal dinheiro) {
 		if (buscarPilotoPorId(id).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.IdentificadorUtilizadoException();
+			throw new IdentificadorUtilizadoException();
 		}
 //		if (dinheiro.equals(BigDecimal.valueOf(0l))) {
 //			throw new br.com.neogrid.desafio.exceptions.SaldoInsuficienteException();
 //		}
 		
-		Piloto piloto2 = new Piloto();
-		piloto2.setIdPiloto(id);
-		piloto2.setNomePiloto(nome);
-		piloto2.setDataNascimento(dataNascimento);
-		piloto2.setDataInicioCarreira(dataInicioCarreira);
-		piloto2.setDinheiroPiloto(dinheiro);
+		Piloto piloto = new Piloto();
+		piloto.setIdPiloto(id);
+		piloto.setNomePiloto(nome);
+		piloto.setDataNascimento(dataNascimento);
+		piloto.setDataInicioCarreira(dataInicioCarreira);
+		piloto.setDinheiroPiloto(dinheiro);
 
-		this.pilotos.add(piloto2);
+		this.pilotos.add(piloto);
 
 		// throw new UnsupportedOperationException();
 	}
@@ -49,17 +59,18 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 			BigDecimal preco) {
 
 		Optional<Piloto> piloto = buscarPilotoPorId(idPiloto);
+		BigDecimal dinheiro = piloto.get().getDinheiroPiloto();
 		
 		if (!piloto.isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
+			throw new PilotoNaoEncontradoException();
 		}
 		
-		if (piloto.get().getDinheiroPiloto().compareTo(preco) < 0) {
-			throw new br.com.neogrid.desafio.exceptions.SaldoInsuficienteException();
+		if (dinheiro.compareTo(preco) < 0) {
+			throw new SaldoInsuficienteException();
 		}
 		
 		if (buscarCarroPorId(id).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.IdentificadorUtilizadoException();
+			throw new IdentificadorUtilizadoException();
 		}
 
 		Carro carro = new Carro();
@@ -71,126 +82,181 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		carro.setPotencia(potencia);
 		carro.setPreco(preco);
 		this.carros.add(carro);
+		
+		// deduz o preco do carro do "dinheiro" do piloto
+		piloto.get().setDinheiroPiloto(dinheiro.subtract(preco));
+		this.pilotos.set(this.pilotos.indexOf(piloto.get()), piloto.get());
 	}
 
 	@Override
 	@Desafio("venderCarro")
 	public void venderCarro(Long idCarro) {
-		if(!buscarCarroPorId(idCarro).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.CarroNaoEncontradoException();
+		Optional<Carro> carro = buscarCarroPorId(idCarro);
+		Optional<Piloto> piloto = buscarPilotoPorId(carro.get().getIdPiloto());
+		BigDecimal dinheiro = piloto.get().getDinheiroPiloto();
+		if(!carro.isPresent()) {
+			throw new CarroNaoEncontradoException();
 		}
+		this.carros.remove(this.carros.indexOf(carro.get()));
+		
+		// adiciona o valor do carro ao dinheiro do piloto que o vendeu
+		piloto.get().setDinheiroPiloto(dinheiro.add(carro.get().preco));
+		this.pilotos.set(this.pilotos.indexOf(piloto.get()), piloto.get());
+		
 	}
 
 	@Override
 	@Desafio("buscarCarroMaisCaro")
 	public Long buscarCarroMaisCaro() {
-		throw new UnsupportedOperationException();
+		BigDecimal maiorpreco = this.carros.stream().max(Comparator.comparing(Carro::getPreco)).get().getPreco();
+		return this.carros.stream()
+				.filter(c -> c.getPreco().equals(maiorpreco))
+				.min(Comparator.comparing(Carro::getIdCarro)).get().getIdCarro();
 	}
 
 	@Override
 	@Desafio("buscarCarroMaisPotente")
 	public Long buscarCarroMaisPotente() {
-		throw new UnsupportedOperationException();
+		Integer maiorpotencia = this.carros.stream().max(Comparator.comparing(Carro::getPotencia)).get().getPotencia();
+		return this.carros.stream()
+				.filter(c -> c.getPotencia().equals(maiorpotencia))
+				.min(Comparator.comparing(Carro::getIdCarro)).get().getIdCarro();
 	}
 
 	@Override
 	@Desafio("buscarCarros")
 	public List<Long> buscarCarros(Long idPiloto) {
 		if(!buscarPilotoPorId(idPiloto).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
+			throw new PilotoNaoEncontradoException();
 		}
 		
-		List<Long> lista = new ArrayList<Long>();
+		/*List<Long> lista = new ArrayList<Long>();
 		for (Carro carro : this.carros) {
 			if (carro.getIdPiloto().equals(idPiloto)) {
 				lista.add(carro.getIdCarro());
 			}
 		}
-		return (lista);
+		return (lista);*/
+		 
+		return this.carros.stream()
+				.filter(c -> c.getIdPiloto().equals(idPiloto))
+				.sorted((a, b) -> a.getIdCarro().compareTo(b.getIdCarro()))
+				.map(c -> c.getIdCarro())
+				.collect(Collectors.toList());
 	}
 
 	@Override
 	@Desafio("buscarCarrosPorMarca")
 	public List<Long> buscarCarrosPorMarca(String marca) {
-		List<Long> lista = new ArrayList<Long>();
+		/*List<Long> lista = new ArrayList<Long>();
 		for (Carro carro : this.carros) {
 			if (carro.getMarca().equals(marca)) {
 				lista.add(carro.getIdCarro());
 			}
 		}
-		return (lista);
+		return (lista);*/
+	
+		return this.carros.stream()
+				.filter(c -> c.getMarca().equals(marca))
+				.sorted((a, b) -> a.getIdCarro().compareTo(b.getIdCarro()))
+				.map(c -> c.getIdCarro())
+				.collect(Collectors.toList());
 	}
 
 	@Override
 	@Desafio("buscarCor")
 	public String buscarCor(Long idCarro) {
-		if(!buscarCarroPorId(idCarro).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.CarroNaoEncontradoException();
-		}
+		/*if(!buscarCarroPorId(idCarro).isPresent()) {
+			throw new CarroNaoEncontradoException();
+		}*/
 		
-		return buscarCarroPorId(idCarro).get().getCor();
+		return buscarCarroPorId(idCarro).orElseThrow(CarroNaoEncontradoException::new).getCor();
 	}
 
 	@Override
 	@Desafio("buscarMarcas")
 	public List<String> buscarMarcas() {
-		throw new UnsupportedOperationException();
+		List<String> todasmarcas = new ArrayList<>();
+		Set<String> marcas = this.carros.stream()
+				.map(c -> c.getMarca())
+				.collect(Collectors.toSet());
+		todasmarcas.addAll(marcas);
+		return todasmarcas;
 	}
 
 	@Override
 	@Desafio("buscarNomePiloto")
 	public String buscarNomePiloto(Long idPiloto) {
-		if(!buscarPilotoPorId(idPiloto).isPresent()) {
+		/*if(!buscarPilotoPorId(idPiloto).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
-		}
-		return buscarPilotoPorId(idPiloto).get().getNomePiloto();
+		}*/
+		return buscarPilotoPorId(idPiloto).orElseThrow(PilotoNaoEncontradoException::new).getNomePiloto();
 	}
 
 	@Override
 	@Desafio("buscarPilotoMaisExperiente")
 	public Long buscarPilotoMaisExperiente() {
-//		List<Piloto> pilotos = new ArrayList<>();
-//		piloto
-		throw new UnsupportedOperationException();
+		
+		LocalDate maiorcarreira = this.pilotos.stream()
+				.min(Comparator.comparing(Piloto::getDataInicioCarreira)).get().getDataInicioCarreira();
+		return this.pilotos.stream()
+				.filter(p -> p.getDataInicioCarreira().equals(maiorcarreira))
+				.min(Comparator.comparing(Piloto::getIdPiloto)).get().getIdPiloto();
+
 	}
 
 	@Override
 	@Desafio("buscarPilotoMenosExperiente")
 	public Long buscarPilotoMenosExperiente() {
-		throw new UnsupportedOperationException();
+		LocalDate menorcarreira = this.pilotos.stream()
+				.max(Comparator.comparing(Piloto::getDataInicioCarreira)).get().getDataInicioCarreira();
+		return this.pilotos.stream()
+				.filter(p -> p.getDataInicioCarreira().equals(menorcarreira))
+				.min(Comparator.comparing(Piloto::getIdPiloto)).get().getIdPiloto();
 	}
 
 	@Override
 	@Desafio("buscarPilotos")
 	public List<Long> buscarPilotos() {
-		List<Long> lista = new ArrayList<Long>();
+	/*	List<Long> lista = new ArrayList<Long>();
 		for (Piloto piloto : this.pilotos) {
 			lista.add(piloto.getIdPiloto());
 		}
-		return (lista);
-		// throw new UnsupportedOperationException();
+		return (lista);*/
+		
+		return this.pilotos.stream()
+				.map(p -> p.getIdPiloto())
+				.collect(Collectors.toList());
 	}
 
 	@Override
 	@Desafio("buscarSaldo")
 	public BigDecimal buscarSaldo(Long idPiloto) {
-		if(!buscarPilotoPorId(idPiloto).isPresent()) {
+		/*if(!buscarPilotoPorId(idPiloto).isPresent()) {
 			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
 		}
 		
 		// PARA TESTE
-		return BigDecimal.valueOf(10l);
+		return BigDecimal.valueOf(10l);*/
+		
+		return buscarPilotoPorId(idPiloto).orElseThrow(PilotoNaoEncontradoException::new).getDinheiroPiloto();
 	}
 
 	@Override
 	@Desafio("buscarValorPatrimonio")
 	public BigDecimal buscarValorPatrimonio(Long idPiloto) {
-		if(!buscarPilotoPorId(idPiloto).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
+		if (!buscarPilotoPorId(idPiloto).isPresent()) {
+			throw new PilotoNaoEncontradoException();
 		}
+		BigDecimal valorcarros = this.carros.stream()
+				.filter(c -> c.getIdPiloto().equals(idPiloto))
+				.map(c -> c.getPreco())
+				.reduce(new BigDecimal(0), BigDecimal::add);
+		
+		return valorcarros;
 
-		// PARA TESTE
-		return BigDecimal.valueOf(10l);
+		
+		
 	}
 
 	@Override
