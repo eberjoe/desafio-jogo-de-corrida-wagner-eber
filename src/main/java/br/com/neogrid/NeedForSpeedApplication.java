@@ -37,42 +37,27 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		if (buscarPilotoPorId(id).isPresent()) {
 			throw new IdentificadorUtilizadoException();
 		}
-//		if (dinheiro.equals(BigDecimal.valueOf(0l))) {
-//			throw new br.com.neogrid.desafio.exceptions.SaldoInsuficienteException();
-//		}
-		
 		Piloto piloto = new Piloto();
 		piloto.setIdPiloto(id);
 		piloto.setNomePiloto(nome);
 		piloto.setDataNascimento(dataNascimento);
 		piloto.setDataInicioCarreira(dataInicioCarreira);
 		piloto.setDinheiroPiloto(dinheiro);
-
 		this.pilotos.add(piloto);
-
-		// throw new UnsupportedOperationException();
 	}
 	
 	@Override
 	@Desafio("comprarCarro")
 	public void comprarCarro(Long id, Long idPiloto, String cor, String marca, Integer ano, Integer potencia,
 			BigDecimal preco) {
-
-		Optional<Piloto> piloto = buscarPilotoPorId(idPiloto);
-		BigDecimal dinheiro = piloto.get().getDinheiroPiloto();
-		
-		if (!piloto.isPresent()) {
-			throw new PilotoNaoEncontradoException();
-		}
-		
+		Piloto piloto = buscarPilotoPorId(idPiloto).orElseThrow(PilotoNaoEncontradoException::new);
+		BigDecimal dinheiro = piloto.getDinheiroPiloto();
 		if (dinheiro.compareTo(preco) < 0) {
 			throw new SaldoInsuficienteException();
 		}
-		
 		if (buscarCarroPorId(id).isPresent()) {
 			throw new IdentificadorUtilizadoException();
 		}
-
 		Carro carro = new Carro();
 		carro.setIdCarro(id);
 		carro.setIdPiloto(idPiloto);
@@ -82,27 +67,21 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		carro.setPotencia(potencia);
 		carro.setPreco(preco);
 		this.carros.add(carro);
-		
 		// deduz o preco do carro do "dinheiro" do piloto
-		piloto.get().setDinheiroPiloto(dinheiro.subtract(preco));
-		this.pilotos.set(this.pilotos.indexOf(piloto.get()), piloto.get());
+		piloto.setDinheiroPiloto(dinheiro.subtract(preco));
+		this.pilotos.set(this.pilotos.indexOf(piloto), piloto);
 	}
 
 	@Override
 	@Desafio("venderCarro")
 	public void venderCarro(Long idCarro) {
-		Optional<Carro> carro = buscarCarroPorId(idCarro);
-		Optional<Piloto> piloto = buscarPilotoPorId(carro.get().getIdPiloto());
-		BigDecimal dinheiro = piloto.get().getDinheiroPiloto();
-		if(!carro.isPresent()) {
-			throw new CarroNaoEncontradoException();
-		}
-		this.carros.remove(this.carros.indexOf(carro.get()));
-		
+		Carro carro = buscarCarroPorId(idCarro).orElseThrow(CarroNaoEncontradoException::new);
+		Piloto piloto = buscarPilotoPorId(carro.getIdPiloto()).get();
+		BigDecimal dinheiro = piloto.getDinheiroPiloto();
+		this.carros.remove(this.carros.indexOf(carro));
 		// adiciona o valor do carro ao dinheiro do piloto que o vendeu
-		piloto.get().setDinheiroPiloto(dinheiro.add(carro.get().preco));
-		this.pilotos.set(this.pilotos.indexOf(piloto.get()), piloto.get());
-		
+		piloto.setDinheiroPiloto(dinheiro.add(carro.preco));
+		this.pilotos.set(this.pilotos.indexOf(piloto), piloto);
 	}
 
 	@Override
@@ -129,15 +108,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		if(!buscarPilotoPorId(idPiloto).isPresent()) {
 			throw new PilotoNaoEncontradoException();
 		}
-		
-		/*List<Long> lista = new ArrayList<Long>();
-		for (Carro carro : this.carros) {
-			if (carro.getIdPiloto().equals(idPiloto)) {
-				lista.add(carro.getIdCarro());
-			}
-		}
-		return (lista);*/
-		 
 		return this.carros.stream()
 				.filter(c -> c.getIdPiloto().equals(idPiloto))
 				.sorted((a, b) -> a.getIdCarro().compareTo(b.getIdCarro()))
@@ -148,14 +118,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarCarrosPorMarca")
 	public List<Long> buscarCarrosPorMarca(String marca) {
-		/*List<Long> lista = new ArrayList<Long>();
-		for (Carro carro : this.carros) {
-			if (carro.getMarca().equals(marca)) {
-				lista.add(carro.getIdCarro());
-			}
-		}
-		return (lista);*/
-	
 		return this.carros.stream()
 				.filter(c -> c.getMarca().equals(marca))
 				.sorted((a, b) -> a.getIdCarro().compareTo(b.getIdCarro()))
@@ -166,10 +128,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarCor")
 	public String buscarCor(Long idCarro) {
-		/*if(!buscarCarroPorId(idCarro).isPresent()) {
-			throw new CarroNaoEncontradoException();
-		}*/
-		
 		return buscarCarroPorId(idCarro).orElseThrow(CarroNaoEncontradoException::new).getCor();
 	}
 
@@ -187,22 +145,17 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarNomePiloto")
 	public String buscarNomePiloto(Long idPiloto) {
-		/*if(!buscarPilotoPorId(idPiloto).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
-		}*/
 		return buscarPilotoPorId(idPiloto).orElseThrow(PilotoNaoEncontradoException::new).getNomePiloto();
 	}
 
 	@Override
 	@Desafio("buscarPilotoMaisExperiente")
 	public Long buscarPilotoMaisExperiente() {
-		
 		LocalDate maiorcarreira = this.pilotos.stream()
 				.min(Comparator.comparing(Piloto::getDataInicioCarreira)).get().getDataInicioCarreira();
 		return this.pilotos.stream()
 				.filter(p -> p.getDataInicioCarreira().equals(maiorcarreira))
 				.min(Comparator.comparing(Piloto::getIdPiloto)).get().getIdPiloto();
-
 	}
 
 	@Override
@@ -218,11 +171,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarPilotos")
 	public List<Long> buscarPilotos() {
-	/*	List<Long> lista = new ArrayList<Long>();
-		for (Piloto piloto : this.pilotos) {
-			lista.add(piloto.getIdPiloto());
-		}
-		return (lista);*/
 		
 		return this.pilotos.stream()
 				.map(p -> p.getIdPiloto())
@@ -232,12 +180,6 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 	@Override
 	@Desafio("buscarSaldo")
 	public BigDecimal buscarSaldo(Long idPiloto) {
-		/*if(!buscarPilotoPorId(idPiloto).isPresent()) {
-			throw new br.com.neogrid.desafio.exceptions.PilotoNaoEncontradoException();
-		}
-		
-		// PARA TESTE
-		return BigDecimal.valueOf(10l);*/
 		
 		return buscarPilotoPorId(idPiloto).orElseThrow(PilotoNaoEncontradoException::new).getDinheiroPiloto();
 	}
@@ -252,11 +194,7 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 				.filter(c -> c.getIdPiloto().equals(idPiloto))
 				.map(c -> c.getPreco())
 				.reduce(new BigDecimal(0), BigDecimal::add);
-		
 		return valorcarros;
-
-		
-		
 	}
 
 	@Override
@@ -267,5 +205,4 @@ public class NeedForSpeedApplication implements NeedForSpeedInterface {
 		}
 		buscarCarroPorId(idCarro).get().setCor(cor);
 	}
-
 }
